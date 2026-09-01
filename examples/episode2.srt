@@ -1,0 +1,11 @@
+1
+00:00:00,000 --> 00:00:03,500
+Thanks for having me on the show today.
+
+2
+00:00:03,500 --> 00:00:08,200
+The supply chain problems started well before the crisis hit.
+
+3
+00:00:08,200 --> 00:00:12,000
+We had to rebuild several vendor relationships from scratch.
