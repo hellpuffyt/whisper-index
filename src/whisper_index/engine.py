@@ -15,7 +15,10 @@ from dataclasses import dataclass, field
 
 from .types import Hit, Segment
 
-_WORD = re.compile(r"[a-z0-9']+")
+# Unicode letters and digits (apostrophes inside a word kept). Whisper
+# transcribes ~100 languages; an ASCII-only pattern split "año" into "a" and
+# "o" and indexed "café" as "caf", so searches matched the wrong segments.
+_WORD = re.compile(r"[^\W_]+(?:'[^\W_]+)*")
 
 
 def tokenize(text: str) -> list[str]:
@@ -56,7 +59,8 @@ def _term_spans(text: str, term: str) -> list[tuple[int, int]]:
 
 
 def search(index: Index, query: str, limit: int = 10) -> list[Hit]:
-    terms = tokenize(query)
+    # A repeated query word must not count twice towards the score.
+    terms = list(dict.fromkeys(tokenize(query)))
     if not terms:
         return []
 

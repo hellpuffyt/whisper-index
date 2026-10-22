@@ -67,13 +67,31 @@ class TestErrors:
         persist.save(index, path)
         text = path.read_text(encoding="utf-8")
         path.write_text(
-            text.replace('"format_version": 1', '"format_version": 7'), encoding="utf-8"
+            text.replace(
+                f'"format_version": {persist.FORMAT_VERSION}', '"format_version": 7'
+            ), encoding="utf-8"
         )
         with pytest.raises(IndexFormatError, match="format version 7"):
             persist.load(path)
 
     def test_missing_field_is_a_named_error(self, tmp_path: Path) -> None:
         path = tmp_path / "i.json"
-        path.write_text('{"format_version": 1}', encoding="utf-8")
+        path.write_text(
+            json.dumps({"format_version": persist.FORMAT_VERSION}), encoding="utf-8"
+        )
         with pytest.raises(IndexFormatError, match="malformed"):
             persist.load(path)
+
+
+
+def test_a_version_1_index_is_refused_so_it_gets_rebuilt(tmp_path: Path) -> None:
+    # Version 1 postings came from the ASCII-only tokenizer.
+    index = engine.build([segment(0, "alpha")])
+    path = tmp_path / "i.json"
+    persist.save(index, path)
+    text = path.read_text(encoding="utf-8").replace(
+        f'"format_version": {persist.FORMAT_VERSION}', '"format_version": 1'
+    )
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(IndexFormatError, match="format version 1"):
+        persist.load(path)

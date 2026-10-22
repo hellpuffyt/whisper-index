@@ -104,3 +104,29 @@ class TestSearch:
         index = engine.build([segment(0, "alpha beta")])
         hits = engine.search(index, "alpha alpha")
         assert len(hits[0].match_spans) == 1
+
+
+# --- audit regressions: multilingual transcripts -----------------------------
+
+
+def test_non_ascii_words_are_whole_tokens() -> None:
+    # The ASCII-only pattern split "año" into "a" + "o" and cut "café" to "caf".
+    assert engine.tokenize("El año pasado, café y Straße") == [
+        "el", "año", "pasado", "café", "y", "straße",
+    ]  # fmt: skip
+
+
+def test_a_non_ascii_query_does_not_match_unrelated_segments() -> None:
+    index = engine.build(
+        [segment(0, "a cat o dog"), segment(1, "el año pasado"), segment(2, "un café")]
+    )
+    assert [h.segment.index for h in engine.search(index, "año")] == [1]
+    assert engine.search(index, "caf") == []
+    [hit] = engine.search(index, "café")
+    assert hit.match_spans == ((3, 7),)
+
+
+def test_a_repeated_query_word_does_not_double_the_score() -> None:
+    index = engine.build([segment(0, "supply chain"), segment(1, "supply supply chain")])
+    hits = engine.search(index, "supply supply chain")
+    assert [(h.segment.index, h.score) for h in hits] == [(1, 3.0), (0, 2.0)]
