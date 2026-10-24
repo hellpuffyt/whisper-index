@@ -6,16 +6,19 @@ moment to seek to. Zero runtime dependencies — Python 3.10+ and nothing
 else.
 
 ```console
-$ whisper-index build transcripts/ --out index.json
-842 segment(s) across 14 file(s), 3910 distinct term(s), 6:12:04 of transcript indexed
+$ whisper-index build examples --out index.json
+7 segment(s) across 2 file(s), 54 distinct term(s), 0:00:32 of transcript indexed
 index written to index.json
-
 $ whisper-index search --index index.json "supply chain"
-transcripts/ep03.json @ 0:14:22  (score 2)
-  ...disruption in the global **supply** **chain** meant every vendor...
-transcripts/ep07.vtt @ 0:41:05  (score 2)
-  ...rebuilding the **supply** **chain** from the ground up after...
+examples/episode1.json @ 0:00:00  (score 2)
+  Welcome back to the show, today we are talking about the **supply** **chain** crisis.
+examples/episode1.json @ 0:00:04  (score 2)
+  Every part of the global **supply** **chain** has been disrupted this year.
+examples/episode2.srt @ 0:00:04  (score 2)
+  The **supply** **chain** problems started well before the crisis hit.
 ```
+
+(Real output for the committed `examples/`.)
 
 ## What it indexes, and what it does not do
 
@@ -47,6 +50,13 @@ whisper-index search --index index.json "some query" --format json --limit 5
 Exit codes: `0` on success (including "no matches" — that is a valid
 answer, not a failure), `1` on a usage or input error.
 
+Words are Unicode letter/digit runs, lower-cased, so transcripts in any
+language with spaces between words are indexed whole (`año`, `café`,
+`straße`). Languages written without spaces (Chinese, Japanese, Thai) are not
+segmented: a segment's text becomes one long token, so word search inside it
+does not work. An index built by a version before the Unicode tokenizer is
+refused ("format version 1") and must be rebuilt.
+
 ## Input formats
 
 - **Whisper JSON**: `{"segments": [{"start": 0.0, "end": 2.5, "text": "..."}]}`
@@ -56,6 +66,24 @@ answer, not a failure), `1` on a usage or input error.
 - **WebVTT**: `WEBVTT` header, `HH:MM:SS.mmm --> HH:MM:SS.mmm`; inline
   `<b>`/`<i>`/`<c.color>` styling tags are stripped before indexing.
 
+## Install
+
+Not published on PyPI; install from a clone:
+
+```console
+git clone https://github.com/hellpuffyt/whisper-index && cd whisper-index
+python -m venv .venv && . .venv/bin/activate
+pip install .
+```
+
+## Verification status
+
+Parsing is tested against the exact layouts openai-whisper's writers emit
+(JSON with `id`/`seek`/`tokens`/... fields, SRT, VTT with `MM:SS.mmm` below one
+hour, `<u>` word-highlight tags), written by hand from the format definitions.
+No speech model was run and no real Whisper output was captured for this
+audit, so transcripts from other wrappers may need checking.
+
 ## Development
 
 ```console
@@ -64,5 +92,8 @@ pytest
 ruff check .
 mypy
 ```
+
+Security: [SECURITY.md](SECURITY.md). Audit evidence:
+[docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
 
 MIT licensed.

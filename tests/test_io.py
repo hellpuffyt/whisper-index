@@ -147,3 +147,48 @@ class TestErrors:
     def test_missing_file_reports_the_path(self, tmp_path: Path) -> None:
         with pytest.raises(TranscriptFormatError, match="cannot read"):
             io.load(tmp_path / "absent.json")
+
+
+# --- audit: the exact layouts openai-whisper's writers produce ---------------
+
+
+def test_whisper_cli_vtt_without_hours(tmp_path: Path) -> None:
+    # whisper's WriteVTT omits the hour field below one hour (MM:SS.mmm).
+    path = tmp_path / "ep.vtt"
+    path.write_text(
+        "WEBVTT\n\n00:00.000 --> 00:02.500\nHello there.\n\n"
+        "59:59.000 --> 1:00:01.250\nPast the hour.\n",
+        encoding="utf-8",
+    )
+    segments = io.load(path)
+    assert [(s.start, s.end, s.text) for s in segments] == [
+        (0.0, 2.5, "Hello there."),
+        (3599.0, 3601.25, "Past the hour."),
+    ]
+
+
+def test_whisper_word_highlight_tags_are_stripped(tmp_path: Path) -> None:
+    path = tmp_path / "ep.srt"
+    path.write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\n<u>Hello</u> world\n", encoding="utf-8"
+    )
+    [seg] = io.load(path)
+    assert seg.text == "Hello world"
+
+
+def test_whisper_json_with_its_extra_fields(tmp_path: Path) -> None:
+    path = tmp_path / "ep.json"
+    payload = {
+        "text": " Hi.",
+        "language": "en",
+        "segments": [
+            {
+                "id": 0, "seek": 0, "start": 0.0, "end": 1.5, "text": " Hi.",
+                "tokens": [50364, 2421], "temperature": 0.0, "avg_logprob": -0.3,
+                "compression_ratio": 0.8, "no_speech_prob": 0.01,
+            }
+        ],
+    }  # fmt: skip
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    [seg] = io.load(path)
+    assert (seg.start, seg.end, seg.text) == (0.0, 1.5, "Hi.")

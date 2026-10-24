@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: the tokenizer only knew ASCII letters, so `año` was indexed as `a` +
+  `o` (matching unrelated segments) and `café` as `caf`. Words are now Unicode
+  letter/digit runs. The index format version is now 2; version-1 indexes are
+  refused and must be rebuilt.
+- Fixed: a repeated query word counted twice towards a hit's score.
+- Docs: README example replaced with real output for `examples/`; install from
+  source; tokenizer and verification limits documented. Added tests for the
+  exact openai-whisper JSON/SRT/VTT layouts, `SECURITY.md`, `.editorconfig`,
+  `docs/PRODUCTION_READINESS.md`.
+
 ## 0.1.0 — 2026-09-01
 
 Initial release.

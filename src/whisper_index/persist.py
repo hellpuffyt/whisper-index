@@ -15,7 +15,9 @@ from .engine import Index
 from .errors import IndexFormatError
 from .types import Segment
 
-FORMAT_VERSION = 1
+#: 2: Unicode-aware tokenizer. Postings written by version 1 split or dropped
+#: non-ASCII words, so such an index is refused and must be rebuilt.
+FORMAT_VERSION = 2
 
 
 def to_dict(index: Index) -> dict[str, object]:
